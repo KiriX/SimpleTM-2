@@ -34,6 +34,7 @@ FILES = os.path.join(DATA, "files")
 DB = os.path.join(DATA, "tasks.db")
 MAX_UPLOAD = 100 * 1024 * 1024      # максимум на одну отправку формы, байт
 SESSION_SECONDS = 14 * 86400
+APP_VERSION = "0.1.0"          # см. CHANGELOG.md
 
 PRIO = {0: "Низкий", 1: "Обычный", 2: "Высокий", 3: "Срочный"}
 STATUS = {"new": "Новая", "work": "В работе", "info": "Запрос информации",
@@ -239,18 +240,20 @@ FAILS = {}   # ip -> [время неудачных входов]
 
 # ---------- оформление ----------
 CSS = """
-:root{--bg:#f6f7f8;--card:#fff;--col:#eceff2;--ink:#1f2933;--mute:#66727f;--line:#dde2e7;--acc:#1f6f8b;--acc-ink:#fff;
+:root{--bg:#f6f7f8;--card:#fff;--col:#eceff2;--sel:#d7eaf3;--ink:#1f2933;--mute:#66727f;--line:#dde2e7;--acc:#1f6f8b;--acc-ink:#fff;
 --bad:#b3261e;--warn:#a15c00;--ok:#2e7d32;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a1d;--card:#1f2428;--col:#262c31;--ink:#e6eaee;--mute:#92a0ad;
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a1d;--card:#1f2428;--col:#262c31;--sel:#1d3946;--ink:#e6eaee;--mute:#92a0ad;
 --line:#323a41;--acc:#5fb0cc;--acc-ink:#0d1a20;--bad:#ff8a80;--warn:#ffb74d;--ok:#81c784;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#161a1d;--card:#1f2428;--col:#262c31;--ink:#e6eaee;--mute:#92a0ad;
+:root[data-theme="dark"]{--bg:#161a1d;--card:#1f2428;--col:#262c31;--sel:#1d3946;--ink:#e6eaee;--mute:#92a0ad;
 --line:#323a41;--acc:#5fb0cc;--acc-ink:#0d1a20;--bad:#ff8a80;--warn:#ffb74d;--ok:#81c784;color-scheme:dark}
 *{box-sizing:border-box}
+body{display:flex;flex-direction:column;min-height:100vh}
+footer{flex:none;text-align:center;font-size:.72rem;color:var(--mute);padding:8px 16px}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
 header{display:flex;gap:18px;align-items:center;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
 header a{color:var(--ink);text-decoration:none;font-weight:600}header a:hover{color:var(--acc)}
 .sp{flex:1}
-main{max-width:1180px;margin:20px auto;padding:0 16px}
+main{width:100%;flex:1 0 auto;max-width:1180px;margin:20px auto;padding:0 16px}
 h1{font-size:1.4rem;margin:0 0 14px}h2{font-size:1.1rem;margin:22px 0 8px}
 a{color:var(--acc)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:14px}
@@ -315,10 +318,13 @@ body.wide main{max-width:none}
 .kp2{border-left:4px solid var(--warn)}.kp3{border-left:4px solid var(--bad)}
 .mtop table{font-size:.85rem}.mtop th,.mtop td{padding:3px 8px;white-space:nowrap}
 .mtop th{position:sticky;top:0;background:var(--card);z-index:1}
-.mtop tr[data-frag]{cursor:pointer}.mtop tr.on td{background:var(--col)}
+.mtop tr[data-frag]{cursor:pointer;scroll-margin-top:32px}.mtop tr[data-frag]:hover td{background:var(--col)}
+.mtop tr.on td,.mtop tr.on:hover td{background:var(--sel);font-weight:600;border-top:1px solid var(--acc);border-bottom:1px solid var(--acc)}
+.mtop tr.on td:first-child{box-shadow:inset 4px 0 0 var(--acc)}
 .mtop td.tt{max-width:460px;overflow:hidden;text-overflow:ellipsis}
 .mtop td.tt a{text-decoration:none}.mtop .badge{font-size:.72rem;padding:0 6px}
 .mtop .filters{margin:0;padding:8px 8px 6px}
+.detail h1{font-size:1.1rem;margin:0 0 8px}
 .main2 textarea{min-height:70px}
 @media (min-width:900px){
 body.fit{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
@@ -355,6 +361,7 @@ var o=document.querySelector('tr.on');if(o){o.classList.remove('on')}tr.classLis
 var c=document.getElementById('chat');if(c){c.scrollTop=c.scrollHeight}
 history.replaceState(null,'',tr.dataset.href);pollNb()}).catch(function(){location.href=tr.dataset.href})});
 var ch=document.getElementById('chat');if(ch){ch.scrollTop=ch.scrollHeight}
+var onr=document.querySelector('.mtop tr.on');if(onr){onr.scrollIntoView({block:'nearest'})}
 function chk(f){var s=f.status?f.status.value:'',r=f.dataset.req.split(',');
 if(s&&r.indexOf(s)>=0&&!f.body.value.trim()){alert('Для выбранного статуса нужен комментарий.');f.body.focus();return false}return true}
 """
@@ -375,8 +382,8 @@ def layout(user, csrf, title, body, unread=0, cls="", cur="/"):
     return ('<!doctype html><html lang="ru"%s><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<title>%s — Задачи</title><style>%s</style></head><body class="%s"><header>%s</header>'
-            '<main>%s</main><script>%s</script></body></html>'
-            % (theme, e(title), CSS, cls, nav, body, JS))
+            '<main>%s</main><footer>Трекер задач · версия %s</footer><script>%s</script></body></html>'
+            % (theme, e(title), CSS, cls, nav, body, APP_VERSION, JS))
 
 
 def opts(pairs, selected):
@@ -656,10 +663,11 @@ class H(BaseHTTPRequestHandler):
             where.append("(instr(pylower(t.title),?)>0 or instr(pylower(t.description),?)>0)")
             args += [text.lower(), text.lower()]
         sql = ("select t.*, a.name as aname, (select count(*) from comments c where c.task_id=t.id) as ncom, "
-               "lc.body as lbody, lc.created as lcreated, lu.name as lname, cg.name as cname "
+               "lc.body as lbody, lc.created as lcreated, lu.name as lname, cg.name as cname, au.name as auname "
                "from tasks t left join users a on a.id=t.assignee_id "
                "left join comments lc on lc.id=(select max(id) from comments where task_id=t.id) "
-               "left join users lu on lu.id=lc.user_id left join categories cg on cg.id=t.category_id %s "
+               "left join users lu on lu.id=lc.user_id left join categories cg on cg.id=t.category_id "
+               "left join users au on au.id=t.author_id %s "
                "order by (t.status in ('checked','cancel')), t.priority desc, t.due is null, t.due, t.id desc limit 500"
                % ("where " + " and ".join(where) if where else ""))
         rows = self.db.execute(sql, args).fetchall()
@@ -742,22 +750,22 @@ class H(BaseHTTPRequestHandler):
             href = "/?" + urlencode(keep + [("sel", t["id"])])
             frag = "/task/%d?frag=1&back=%s" % (t["id"], quote(href, safe=""))
             trs += ('<tr data-frag="%s" data-href="%s"%s><td class="mute">%d</td><td class="tt"><a class="sel" href="%s"%s>%s</a>%s</td>'
-                    '<td class="cat">%s</td><td>%s</td><td>%s</td><td>%s</td><td class="%s">%s</td><td class="mute">%s</td>'
+                    '<td class="cat">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class="%s">%s</td><td class="mute">%s</td>'
                     '<td class="mute">%s</td></tr>'
                     % (e(frag), e(href), ' class="on"' if t["id"] == sel else "", t["id"], e(href), tip, e(t["title"]), mark,
-                       e(t["cname"] or ""), badge_prio(t["priority"]), badge_status(t["status"]), e(t["aname"] or "—"),
+                       e(t["cname"] or ""), badge_prio(t["priority"]), badge_status(t["status"]), e(t["auname"] or "—"), e(t["aname"] or "—"),
                        "late" if late else "", fd(t["due"]), fdt(t["updated"]), t["ncom"] or ""))
         if not trs:
-            trs = '<tr><td colspan="9" class="mute">Задач не найдено.</td></tr>'
+            trs = '<tr><td colspan="10" class="mute">Задач не найдено.</td></tr>'
         detail = '<div class="card mute" style="margin:0">Выберите задачу в таблице.</div>'
         if sel:
             try:
-                _, side, main = self.task_panes(sel, self.cur_url())
+                _, side, main = self.task_panes(sel, self.cur_url(), True)
                 detail = side + main
             except Http:
                 pass
         top = ('<div class="mtop">%s<table><tr><th>№</th><th>Задача</th><th>Категория</th><th>Приоритет</th><th>Статус</th>'
-               '<th>Исполнитель</th><th>Срок</th><th>Изменена</th><th>💬</th></tr>%s</table></div>' % (fl, trs))
+               '<th>Автор</th><th>Исполнитель</th><th>Срок</th><th>Изменена</th><th>💬</th></tr>%s</table></div>' % (fl, trs))
         self.page("Задачи", top + '<div class="detail" id="detail">%s</div>' % detail, cls="mini")
 
     # --- форма задачи ---
@@ -863,12 +871,12 @@ class H(BaseHTTPRequestHandler):
 
     def p_task(self, tid):
         back = safe_back(self.q.get("back", [""])[0]) or "/task/%d" % tid
-        title, side, main = self.task_panes(tid, back)
+        title, side, main = self.task_panes(tid, back, bool(self.q.get("frag")))
         if self.q.get("frag"):
             return self.send(200, side + main)
         self.page(title, side + main, cls="fit")
 
-    def task_panes(self, tid, back):
+    def task_panes(self, tid, back, compact=False):
         t = self.get_task(tid)
         me = self.user["id"]
         self.db.execute("update notifications set is_read=1 where user_id=? and task_id=? and is_read=0", (me, tid))
@@ -911,16 +919,28 @@ class H(BaseHTTPRequestHandler):
             delete = ('<form class="inline" method="post" action="/task/%d/delete" '
                       'onsubmit="return confirm(\'Удалить задачу вместе с обсуждением и файлами?\')">%s'
                       '<button class="danger">Удалить задачу</button></form>' % (tid, csrf_field(self.csrf)))
-        card = ('<div class="card"><div>%s %s</div><div class="meta">'
-                '<div><b>Исполнитель</b>%s</div><div><b>Срок</b><span class="%s">%s</span></div>'
-                '<div><b>Автор</b>%s</div><div><b>Категория</b>%s</div>'
-                '<div><b>Создана</b>%s</div><div><b>Изменена</b>%s</div></div>'
-                '<div class="pre">%s</div>%s</div>'
-                % (badge_prio(t["priority"]), badge_status(t["status"]),
-                   e(t["aname"] or "не назначен"), "late" if late else "", fd(t["due"]),
-                   e(t["uname"]), e(t["cname"] or "—"), fdt(t["created"]), fdt(t["updated"]),
-                   e(t["description"]) or '<span class="mute">Без описания</span>',
-                   ('<h2>Файлы</h2>' + task_atts) if task_atts else ""))
+        desc = e(t["description"]) or '<span class="mute">Без описания</span>'
+        files = ('<h2>Файлы</h2>' + task_atts) if task_atts else ""
+        if compact:
+            # параметры дублируют таблицу сверху, поэтому свёрнуты
+            card = ('<div class="card"><div class="pre">%s</div>%s</div>'
+                    '<details class="card"><summary>Параметры задачи</summary><div class="meta">'
+                    '<div><b>Приоритет</b>%s</div><div><b>Статус</b>%s</div><div><b>Исполнитель</b>%s</div>'
+                    '<div><b>Срок</b><span class="%s">%s</span></div><div><b>Автор</b>%s</div>'
+                    '<div><b>Категория</b>%s</div><div><b>Создана</b>%s</div><div><b>Изменена</b>%s</div></div></details>'
+                    % (desc, files, badge_prio(t["priority"]), badge_status(t["status"]),
+                       e(t["aname"] or "не назначен"), "late" if late else "", fd(t["due"]),
+                       e(t["uname"]), e(t["cname"] or "—"), fdt(t["created"]), fdt(t["updated"])))
+        else:
+            card = ('<div class="card"><div>%s %s</div><div class="meta">'
+                    '<div><b>Исполнитель</b>%s</div><div><b>Срок</b><span class="%s">%s</span></div>'
+                    '<div><b>Автор</b>%s</div><div><b>Категория</b>%s</div>'
+                    '<div><b>Создана</b>%s</div><div><b>Изменена</b>%s</div></div>'
+                    '<div class="pre">%s</div>%s</div>'
+                    % (badge_prio(t["priority"]), badge_status(t["status"]),
+                       e(t["aname"] or "не назначен"), "late" if late else "", fd(t["due"]),
+                       e(t["uname"]), e(t["cname"] or "—"), fdt(t["created"]), fdt(t["updated"]),
+                       desc, files))
         side = ('<div class="side"><h1>#%d %s</h1>%s'
                 '<details class="card"><summary>Редактировать задачу</summary>%s</details>'
                 '<details class="card"><summary>История изменений</summary>%s</details><p>%s</p></div>'
@@ -1203,6 +1223,7 @@ class H(BaseHTTPRequestHandler):
 # ---------- запуск ----------
 def main():
     ap = argparse.ArgumentParser(description="Простой трекер задач")
+    ap.add_argument("--version", action="version", version="Трекер задач " + APP_VERSION)
     ap.add_argument("cmd", nargs="?", choices=["run", "adduser", "passwd"], default="run")
     ap.add_argument("login", nargs="?")
     ap.add_argument("name", nargs="?")
