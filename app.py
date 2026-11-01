@@ -34,7 +34,7 @@ FILES = os.path.join(DATA, "files")
 DB = os.path.join(DATA, "tasks.db")
 MAX_UPLOAD = 100 * 1024 * 1024      # максимум на одну отправку формы, байт
 SESSION_SECONDS = 14 * 86400
-APP_VERSION = "0.1.0"          # см. CHANGELOG.md
+APP_VERSION = "0.2.0"          # см. CHANGELOG.md
 
 PRIO = {0: "Низкий", 1: "Обычный", 2: "Высокий", 3: "Срочный"}
 STATUS = {"new": "Новая", "work": "В работе", "info": "Запрос информации",
@@ -59,6 +59,10 @@ TRANSITIONS = {
     "cancel": ("new",),
 }
 DEFAULT_CATEGORIES = ["Отчёты", "SIEM", "АСЗИ", "Astra Linux", "Windows", "ГосСопка"]
+# подписи действий в меню «Ответить» (целевой статус -> глагол)
+VERBS = {"new": "Открыть заново", "work": "Взять в работу", "info": "Запросить информацию",
+         "infook": "Предоставить информацию", "done": "Отметить выполненной",
+         "checked": "Принять работу", "returned": "Вернуть на доработку", "cancel": "Отменить задачу"}
 
 
 def allowed_next(cur):
@@ -342,6 +346,56 @@ background:var(--card);border:1px solid var(--line)}
 }
 .dt{display:flex;gap:6px;position:relative}.dt input[type=text]{flex:1;min-width:0}.dt button{padding:7px 10px}
 .pick{position:absolute;right:0;bottom:0;opacity:0;width:1px;height:1px;border:0;padding:0;pointer-events:none}
+/* ---- 0.2.0: «Ответить» ---- */
+.rbar,.racts{display:none}
+.js .rbar{display:flex}
+.js .rform{display:none}
+.js .rform select{display:none}
+.js .reply.s1 .rbar,.js .reply.s2 .rbar{display:none}
+.js .reply.s1 .racts{display:flex;flex-wrap:wrap;gap:6px}
+.js .reply.s2 .rform{display:block}
+.reply{padding:8px 12px}
+.reply textarea{min-height:64px;margin:0 0 6px}
+.reply select{margin-bottom:6px}
+.rbtn{padding:6px 26px}
+.act{background:transparent;color:var(--ink);border:1px solid var(--line);padding:5px 12px}
+.act:hover{border-color:var(--acc)}
+.rinfo{margin-bottom:4px}
+.rrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rrow input[type=file]{flex:1;min-width:160px;max-width:100%}
+.dhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 4px 6px}
+.dhead .ttl{font-size:1.05rem;font-weight:700}
+/* ---- 0.2.0: компактный вид ---- */
+.mscroll{overflow:auto;max-height:60vh}
+.mtop table{border-collapse:collapse;font-size:.82rem;border:0}
+.mtop th,.mtop td{padding:1px 8px;line-height:1.35;border:1px solid var(--line)}
+.mtop th{cursor:pointer;user-select:none;font-size:.75rem;box-shadow:inset 0 -1px 0 var(--line)}
+.mtop th.sa::after{content:" ▲"}.mtop th.sd::after{content:" ▼"}
+.mtop .badge{font-size:.7rem;padding:0 5px;line-height:1.3}
+.mtop .filters{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line)}
+.mtop .filters>div{display:flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0}
+.mtop .filters label{margin:0;font-size:.75rem}
+.mtop .filters input,.mtop .filters select{padding:2px 6px;font-size:.82rem;width:auto;min-width:0}
+.mtop .filters input[type=search]{width:170px}
+.mtop .filters button{padding:2px 12px}
+.vs{cursor:col-resize;margin:0 2px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat}
+.vs:hover{background:var(--line)}
+body.dragging{user-select:none;cursor:col-resize}
+@media (min-width:900px){
+body.fit header,body.mini header{padding:4px 14px;gap:14px}
+body.fit main,body.mini main{margin:6px auto 0;padding:0 10px}
+body.fit footer,body.mini footer{padding:2px 10px;line-height:1.2}
+body.mini main{gap:6px}
+.mtop{height:25vh;min-height:100px;display:flex;flex-direction:column;overflow:hidden}
+.mtop .filters{flex:none}
+.mscroll{flex:1;min-height:0;max-height:none}
+.detail{display:flex;flex-direction:column;gap:0;min-height:0}
+.dbody{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(180px,var(--sidew,26%)) 6px minmax(320px,1fr)}
+body.fit main{grid-template-rows:minmax(0,1fr)}
+.dbody>.side{padding-right:6px}
+.main2 .chatbox{margin-bottom:8px}
+.main2>.card:last-child{margin-bottom:0}
+}
 """
 
 JS = """
@@ -350,27 +404,71 @@ function setDate(d){if(d.value){var p=d.value.split('-');d.previousElementSiblin
 function setNb(n){var b=document.getElementById('nb');if(b){b.textContent=n;b.style.display=n>0?'':'none'}}
 function pollNb(){fetch('/unread',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){setNb(d.n)}).catch(function(){})}
 if(document.getElementById('nb')){setInterval(pollNb,60000)}
-document.addEventListener('click',function(ev){
-var m=document.querySelector('details.um[open]');if(m&&!m.contains(ev.target)){m.removeAttribute('open')}
-var tr=ev.target.closest?ev.target.closest('tr[data-frag]'):null;if(!tr||ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.button){return}
-var a=ev.target.closest('a');if(a&&!a.classList.contains('sel')){return}
-var d=document.getElementById('detail');if(!d){return}
-ev.preventDefault();
-fetch(tr.dataset.frag,{credentials:'same-origin'}).then(function(r){return r.text()}).then(function(h){d.innerHTML=h;
-var o=document.querySelector('tr.on');if(o){o.classList.remove('on')}tr.classList.add('on');
-var c=document.getElementById('chat');if(c){c.scrollTop=c.scrollHeight}
-history.replaceState(null,'',tr.dataset.href);pollNb()}).catch(function(){location.href=tr.dataset.href})});
-var ch=document.getElementById('chat');if(ch){ch.scrollTop=ch.scrollHeight}
-var onr=document.querySelector('.mtop tr.on');if(onr){onr.scrollIntoView({block:'nearest'})}
 function chk(f){var s=f.status?f.status.value:'',r=f.dataset.req.split(',');
-if(s&&r.indexOf(s)>=0&&!f.body.value.trim()){alert('Для выбранного статуса нужен комментарий.');f.body.focus();return false}return true}
+if(s&&r.indexOf(s)>=0&&!f.body.value.trim()){alert('Для выбранного действия нужен комментарий.');f.body.focus();return false}return true}
+var uid=document.body.getAttribute('data-uid')||'0';
+function ls(k,v){try{if(v===undefined){return localStorage.getItem('tt'+uid+k)}localStorage.setItem('tt'+uid+k,v)}catch(x){}return null}
+function toEnd(){var c=document.getElementById('chat');if(c){c.scrollTop=c.scrollHeight}}
+var seq=0;
+function openRow(tr,scroll){var d=document.getElementById('detail');if(!d){return}var n=++seq;
+var o=document.querySelector('.mtop tr.on');if(o){o.classList.remove('on')}tr.classList.add('on');
+if(scroll){tr.scrollIntoView({block:'nearest'})}
+fetch(tr.dataset.frag,{credentials:'same-origin'}).then(function(r){return r.text()}).then(function(h){if(n!==seq){return}
+d.innerHTML=h;toEnd();history.replaceState(null,'',tr.dataset.href);pollNb()}).catch(function(){location.href=tr.dataset.href})}
+function sortTbl(th,dir){var t=th.closest('table'),i=th.cellIndex,num=th.getAttribute('data-t')==='n';
+var tb=t.tBodies[0],rows=[].slice.call(tb.querySelectorAll('tr[data-frag]'));
+rows.sort(function(a,b){var x=a.cells[i].getAttribute('data-v')||'',y=b.cells[i].getAttribute('data-v')||'';
+var r=num?(parseFloat(x)||0)-(parseFloat(y)||0):x.localeCompare(y,'ru');return dir==='a'?r:-r});
+rows.forEach(function(r){tb.appendChild(r)});
+[].forEach.call(t.querySelectorAll('th'),function(h){h.classList.remove('sa');h.classList.remove('sd');h.removeAttribute('data-d')});
+th.classList.add(dir==='a'?'sa':'sd');th.setAttribute('data-d',dir);ls('sort',i+':'+dir)}
+document.addEventListener('click',function(ev){
+var tg=ev.target;if(!tg.closest){return}
+var m=document.querySelector('details.um[open]');if(m&&!m.contains(tg)){m.removeAttribute('open')}
+var th=tg.closest('.mtop th');if(th){sortTbl(th,th.getAttribute('data-d')==='a'?'d':'a');return}
+var b=tg.closest('.rbtn,.act');
+if(b){var r=b.closest('.reply');if(!r){return}
+if(b.classList.contains('rbtn')){r.className='card reply s1';return}
+if(b.getAttribute('data-act')===null){r.className='card reply';return}
+var f=r.querySelector('form');f.status.value=b.getAttribute('data-act');
+r.querySelector('.rsend').textContent=b.getAttribute('data-lbl');
+r.querySelector('.rinfo').textContent=b.getAttribute('data-st')?'Статус изменится: '+b.getAttribute('data-st'):'';
+f.body.placeholder=b.getAttribute('data-req')==='1'?'Комментарий (обязателен)':'Комментарий';
+r.className='card reply s2';f.body.focus();return}
+var rc=tg.closest('.rcancel');if(rc){rc.closest('.reply').className='card reply';return}
+var tr=tg.closest('tr[data-frag]');if(!tr||ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.button){return}
+var a=tg.closest('a');if(a&&!a.classList.contains('sel')){return}
+if(!document.getElementById('detail')){return}
+ev.preventDefault();openRow(tr,false)});
+document.addEventListener('keydown',function(ev){
+var t=ev.target,tn=t.tagName;
+if(ev.key==='Escape'){var rp=t.closest?t.closest('.reply'):null;if(rp&&rp.className!=='card reply'){rp.className='card reply';return}}
+if(tn==='TEXTAREA'&&ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){var f=t.form;if(f){ev.preventDefault();if(f.requestSubmit){f.requestSubmit()}else if(chk(f)){f.submit()}}return}
+if((ev.key==='ArrowDown'||ev.key==='ArrowUp')&&!ev.ctrlKey&&!ev.altKey&&!ev.metaKey&&!ev.shiftKey&&tn!=='INPUT'&&tn!=='TEXTAREA'&&tn!=='SELECT'&&!t.isContentEditable){
+var rows=[].slice.call(document.querySelectorAll('.mtop tbody tr[data-frag]'));if(!rows.length){return}
+var cur=document.querySelector('.mtop tr.on'),i=rows.indexOf(cur);
+i=ev.key==='ArrowDown'?Math.min(i+1,rows.length-1):(i<0?0:Math.max(i-1,0));
+ev.preventDefault();if(rows[i]!==cur){openRow(rows[i],true)}}});
+var drag=null,mt=document.querySelector('.mtop'),lastH=0;
+document.addEventListener('mousedown',function(ev){if(ev.target.closest&&ev.target.closest('.vs')){drag=document.getElementById('detail');ev.preventDefault();document.body.classList.add('dragging')}});
+document.addEventListener('mousemove',function(ev){if(drag){var r=drag.getBoundingClientRect();drag.style.setProperty('--sidew',Math.max(180,Math.min(ev.clientX-r.left,r.width-340))+'px')}});
+document.addEventListener('mouseup',function(){
+if(drag){ls('sw',parseInt(drag.style.getPropertyValue('--sidew'),10)||'');drag=null;document.body.classList.remove('dragging')}
+if(mt&&Math.abs(mt.offsetHeight-lastH)>2){lastH=mt.offsetHeight;ls('mh',lastH)}});
+toEnd();
+if(mt){var hh=ls('mh');if(hh){mt.style.height=hh+'px'}lastH=mt.offsetHeight;
+var so=ls('sort');if(so){var pp=so.split(':'),ths=mt.querySelectorAll('th');if(ths[pp[0]]){sortTbl(ths[pp[0]],pp[1])}}}
+var dd=document.getElementById('detail');if(dd){var ww=ls('sw');if(ww){dd.style.setProperty('--sidew',ww+'px')}}
+var onr=document.querySelector('.mtop tr.on');if(onr){onr.scrollIntoView({block:'nearest'})}
 """
 
 
 def layout(user, csrf, title, body, unread=0, cls="", cur="/"):
     nav = ""
     theme = ""
+    uid = ""
     if user:
+        uid = ' data-uid="%d"' % user["id"]
         if user["ui_theme"] in ("light", "dark"):
             theme = ' data-theme="%s"' % user["ui_theme"]
         nav = ('<a href="/">Задачи</a><a href="/task/new">Новая задача</a>'
@@ -381,9 +479,10 @@ def layout(user, csrf, title, body, unread=0, cls="", cur="/"):
         nav += '<span class="sp"></span>' + user_menu(user, csrf, cur)
     return ('<!doctype html><html lang="ru"%s><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<title>%s — Задачи</title><style>%s</style></head><body class="%s"><header>%s</header>'
+            "<script>document.documentElement.className+=' js'</script>"
+            '<title>%s — Задачи</title><style>%s</style></head><body class="%s"%s><header>%s</header>'
             '<main>%s</main><footer>Трекер задач · версия %s</footer><script>%s</script></body></html>'
-            % (theme, e(title), CSS, cls, nav, body, APP_VERSION, JS))
+            % (theme, e(title), CSS, cls, uid, nav, body, APP_VERSION, JS))
 
 
 def opts(pairs, selected):
@@ -738,34 +837,50 @@ class H(BaseHTTPRequestHandler):
                     % (badge_status(col), n, cards or '<div class="mute small">—</div>'))
         self.page("Задачи", '<h1>Задачи</h1>%s<div class="kb">%s</div>' % (fl, out), cls="wide")
 
+    def detail_html(self, head, side, main):
+        return (head + '<div class="dbody">' + side
+                + '<div class="vs" title="Потяните, чтобы изменить ширину колонки"></div>' + main + '</div>')
+
     def v_mini(self, rows, fl):
         td = today()
+        order = list(STATUS)
         sel = self.q.get("sel", [""])[0]
         sel = int(sel) if sel.isdigit() else 0
         keep = [(k, self.q[k][0]) for k in ("status", "assignee", "priority", "category", "q")
                 if self.q.get(k) and self.q[k][0]]
+
+        def cell(inner, v, cls=""):
+            return '<td%s data-v="%s">%s</td>' % ((' class="%s"' % cls) if cls else "", e(v), inner)
         trs = ""
         for t in rows:
             late, mark, tip = self.row_info(t, td)
             href = "/?" + urlencode(keep + [("sel", t["id"])])
             frag = "/task/%d?frag=1&back=%s" % (t["id"], quote(href, safe=""))
-            trs += ('<tr data-frag="%s" data-href="%s"%s><td class="mute">%d</td><td class="tt"><a class="sel" href="%s"%s>%s</a>%s</td>'
-                    '<td class="cat">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class="%s">%s</td><td class="mute">%s</td>'
-                    '<td class="mute">%s</td></tr>'
-                    % (e(frag), e(href), ' class="on"' if t["id"] == sel else "", t["id"], e(href), tip, e(t["title"]), mark,
-                       e(t["cname"] or ""), badge_prio(t["priority"]), badge_status(t["status"]), e(t["auname"] or "—"), e(t["aname"] or "—"),
-                       "late" if late else "", fd(t["due"]), fdt(t["updated"]), t["ncom"] or ""))
+            link = '<a class="sel" href="%s"%s>%s</a>%s' % (e(href), tip, e(t["title"]), mark)
+            trs += ('<tr data-frag="%s" data-href="%s"%s>' % (e(frag), e(href), ' class="on"' if t["id"] == sel else "")
+                    + cell(t["id"], t["id"], "mute") + cell(link, t["title"].lower(), "tt")
+                    + cell(e(t["cname"] or ""), t["cname"] or "", "cat")
+                    + cell(badge_prio(t["priority"]), t["priority"])
+                    + cell(badge_status(t["status"]), order.index(t["status"]) if t["status"] in order else 99)
+                    + cell(e(t["auname"] or "—"), t["auname"] or "")
+                    + cell(e(t["aname"] or "—"), t["aname"] or "")
+                    + cell(fd(t["due"]), t["due"] or "9999", "late" if late else "")
+                    + cell(fdt(t["updated"]), t["updated"], "mute")
+                    + cell(t["ncom"] or "", t["ncom"], "mute") + "</tr>")
         if not trs:
             trs = '<tr><td colspan="10" class="mute">Задач не найдено.</td></tr>'
+        cols = [("n", "№"), ("s", "Задача"), ("s", "Категория"), ("n", "Приоритет"), ("n", "Статус"),
+                ("s", "Автор"), ("s", "Исполнитель"), ("s", "Срок"), ("s", "Изменена"), ("n", "💬")]
+        th = "".join('<th data-t="%s">%s</th>' % c for c in cols)
+        top = ('<div class="mtop">%s<div class="mscroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div></div>'
+               % (fl, th, trs))
         detail = '<div class="card mute" style="margin:0">Выберите задачу в таблице.</div>'
         if sel:
             try:
-                _, side, main = self.task_panes(sel, self.cur_url(), True)
-                detail = side + main
+                _, side, main, head = self.task_panes(sel, self.cur_url(), True)
+                detail = self.detail_html(head, side, main)
             except Http:
                 pass
-        top = ('<div class="mtop">%s<table><tr><th>№</th><th>Задача</th><th>Категория</th><th>Приоритет</th><th>Статус</th>'
-               '<th>Автор</th><th>Исполнитель</th><th>Срок</th><th>Изменена</th><th>💬</th></tr>%s</table></div>' % (fl, trs))
         self.page("Задачи", top + '<div class="detail" id="detail">%s</div>' % detail, cls="mini")
 
     # --- форма задачи ---
@@ -871,9 +986,9 @@ class H(BaseHTTPRequestHandler):
 
     def p_task(self, tid):
         back = safe_back(self.q.get("back", [""])[0]) or "/task/%d" % tid
-        title, side, main = self.task_panes(tid, back, bool(self.q.get("frag")))
+        title, side, main, head = self.task_panes(tid, back, bool(self.q.get("frag")))
         if self.q.get("frag"):
-            return self.send(200, side + main)
+            return self.send(200, self.detail_html(head, side, main))
         self.page(title, side + main, cls="fit")
 
     def task_panes(self, tid, back, compact=False):
@@ -941,24 +1056,33 @@ class H(BaseHTTPRequestHandler):
                        e(t["aname"] or "не назначен"), "late" if late else "", fd(t["due"]),
                        e(t["uname"]), e(t["cname"] or "—"), fdt(t["created"]), fdt(t["updated"]),
                        desc, files))
-        side = ('<div class="side"><h1>#%d %s</h1>%s'
+        h1 = "" if compact else "<h1>#%d %s</h1>" % (tid, e(t["title"]))
+        side = ('<div class="side">%s%s'
                 '<details class="card"><summary>Редактировать задачу</summary>%s</details>'
                 '<details class="card"><summary>История изменений</summary>%s</details><p>%s</p></div>'
-                % (tid, e(t["title"]), card, self.task_form("/task/%d/edit" % tid, t, False, back), hs, delete))
-        nxt = allowed_next(t["status"])
-        status_row = ""
-        if nxt:
-            status_row = ('<div><label>Статус</label><select name="status"><option value="">Без смены (%s)</option>%s'
-                          '</select></div>' % (e(STATUS[t["status"]]), opts([(k, STATUS[k]) for k in nxt], "")))
-        form = ('<div class="card"><form method="post" action="/task/%d/comment" enctype="multipart/form-data" '
-                'data-req="%s" onsubmit="return chk(this)">%s'
-                '<textarea name="body" placeholder="Комментарий"></textarea>'
-                '<div class="row">%s<div><label>Файлы</label><input type="file" name="file" multiple></div></div>'
-                '<p style="margin:10px 0 0"><button>Отправить</button></p></form></div>'
-                % (tid, ",".join(COMMENT_REQUIRED), csrf_field(self.csrf) + back_hidden(back), status_row))
+                % (h1, card, self.task_form("/task/%d/edit" % tid, t, False, back), hs, delete))
+        acts = ('<button type="button" class="act" data-act="" data-st="" data-lbl="Отправить" data-req="0">'
+                '<b>Просто комментарий</b></button>')
+        sel = '<option value="">Без смены статуса (%s)</option>' % e(STATUS[t["status"]])
+        for k in allowed_next(t["status"]):
+            acts += ('<button type="button" class="act" data-act="%s" data-st="%s" data-lbl="%s" data-req="%d">'
+                     '<b>%s</b> <span class="mute">→ %s</span></button>'
+                     % (k, e(STATUS[k]), e(VERBS[k]), 1 if k in COMMENT_REQUIRED else 0, e(VERBS[k]), e(STATUS[k])))
+            sel += '<option value="%s">%s → %s</option>' % (k, e(VERBS[k]), e(STATUS[k]))
+        reply = ('<div class="card reply"><div class="rbar"><button type="button" class="rbtn">Ответить</button></div>'
+                 '<div class="racts">%s<button type="button" class="act cancel">Отмена</button></div>'
+                 '<form class="rform" method="post" action="/task/%d/comment" enctype="multipart/form-data" '
+                 'data-req="%s" onsubmit="return chk(this)">%s<div class="rinfo small mute"></div>'
+                 '<select name="status">%s</select>'
+                 '<textarea name="body" placeholder="Комментарий"></textarea>'
+                 '<div class="rrow"><input type="file" name="file" multiple><button class="rsend">Отправить</button>'
+                 '<button type="button" class="sec rcancel">Отмена</button></div></form></div>'
+                 % (acts, tid, ",".join(COMMENT_REQUIRED), csrf_field(self.csrf) + back_hidden(back), sel))
         main = ('<div class="main2">%s<div class="card chatbox"><div id="chat">%s</div></div>%s</div>'
-                % (hint, cm, form))
-        return "#%d %s" % (tid, t["title"]), side, main
+                % (hint, cm, reply))
+        head = ('<div class="dhead"><span class="mute">#%d</span><span class="ttl">%s</span>%s %s</div>'
+                % (tid, e(t["title"]), badge_prio(t["priority"]), badge_status(t["status"])))
+        return "#%d %s" % (tid, t["title"]), side, main, head
 
     def a_task_edit(self, tid):
         t = self.get_task(tid)
