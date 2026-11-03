@@ -34,7 +34,7 @@ FILES = os.path.join(DATA, "files")
 DB = os.path.join(DATA, "tasks.db")
 MAX_UPLOAD = 100 * 1024 * 1024      # максимум на одну отправку формы, байт
 SESSION_SECONDS = 14 * 86400
-APP_VERSION = "0.2.0"          # см. CHANGELOG.md
+APP_VERSION = "0.2.2"          # см. CHANGELOG.md
 
 PRIO = {0: "Низкий", 1: "Обычный", 2: "Высокий", 3: "Срочный"}
 STATUS = {"new": "Новая", "work": "В работе", "info": "Запрос информации",
@@ -243,225 +243,19 @@ FAILS = {}   # ip -> [время неудачных входов]
 
 
 # ---------- оформление ----------
-CSS = """
-:root{--bg:#f6f7f8;--card:#fff;--col:#eceff2;--sel:#d7eaf3;--ink:#1f2933;--mute:#66727f;--line:#dde2e7;--acc:#1f6f8b;--acc-ink:#fff;
---bad:#b3261e;--warn:#a15c00;--ok:#2e7d32;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161a1d;--card:#1f2428;--col:#262c31;--sel:#1d3946;--ink:#e6eaee;--mute:#92a0ad;
---line:#323a41;--acc:#5fb0cc;--acc-ink:#0d1a20;--bad:#ff8a80;--warn:#ffb74d;--ok:#81c784;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#161a1d;--card:#1f2428;--col:#262c31;--sel:#1d3946;--ink:#e6eaee;--mute:#92a0ad;
---line:#323a41;--acc:#5fb0cc;--acc-ink:#0d1a20;--bad:#ff8a80;--warn:#ffb74d;--ok:#81c784;color-scheme:dark}
-*{box-sizing:border-box}
-body{display:flex;flex-direction:column;min-height:100vh}
-footer{flex:none;text-align:center;font-size:.72rem;color:var(--mute);padding:8px 16px}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-header{display:flex;gap:18px;align-items:center;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
-header a{color:var(--ink);text-decoration:none;font-weight:600}header a:hover{color:var(--acc)}
-.sp{flex:1}
-main{width:100%;flex:1 0 auto;max-width:1180px;margin:20px auto;padding:0 16px}
-h1{font-size:1.4rem;margin:0 0 14px}h2{font-size:1.1rem;margin:22px 0 8px}
-a{color:var(--acc)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:14px}
-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:.85rem;color:var(--mute);font-weight:600}
-tr:last-child td{border-bottom:0}
-.tbl{overflow-x:auto}
-input,select,textarea,button{font:inherit;color:inherit}
-input[type=text],input[type=password],input[type=date],input[type=search],select,textarea{
-width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg)}
-textarea{min-height:110px;resize:vertical}
-button,.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:4px;padding:7px 14px;cursor:pointer;text-decoration:none;display:inline-block}
-button.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
-button.danger{background:var(--bad);color:var(--acc-ink)}
-button.link{background:none;color:var(--ink);padding:0;font-weight:600}
-:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-form.inline{display:inline}
-label{display:block;font-size:.85rem;color:var(--mute);margin:10px 0 3px}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
-.filters>div{flex:1;min-width:130px}.filters label{margin-top:0}
-.badge{display:inline-block;padding:1px 8px;border-radius:10px;border:1px solid var(--line);font-size:.8rem;white-space:nowrap}
-.p2{color:var(--warn);border-color:var(--warn)}.p3{color:var(--bad);border-color:var(--bad);font-weight:600}
-.s-work{color:var(--acc);border-color:var(--acc)}.s-review{color:var(--warn);border-color:var(--warn)}
-.s-done{color:var(--ok);border-color:var(--ok)}.s-cancel{color:var(--mute)}
-.late{color:var(--bad);font-weight:600}.mute{color:var(--mute)}.small{font-size:.85rem}
-.pre{white-space:pre-wrap;word-wrap:break-word}
-.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
-.meta b{display:block;font-size:.8rem;color:var(--mute);font-weight:600}
-.cm{border-top:1px solid var(--line);padding:10px 0}.cm:first-child{border-top:0}
-.flash{background:var(--card);border-left:4px solid var(--bad);padding:8px 12px;margin-bottom:14px}
-.login{max-width:340px;margin:60px auto}
-.s-info{color:var(--warn);border-color:var(--warn);font-weight:600}
-.s-infook{color:var(--acc);border-color:var(--acc);font-weight:600}
-.last{font-size:.85rem;color:var(--mute);margin-top:3px}
-.hint{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);padding:8px 12px;margin-bottom:14px}
-.chg{margin:4px 0}
-.s-checked{background:var(--ok);color:var(--acc-ink);border-color:var(--ok)}
-.s-returned{color:var(--bad);border-color:var(--bad);font-weight:600}
-.cat{color:var(--mute);font-size:.85rem}
-.cnt{background:var(--bad);color:var(--acc-ink);border-radius:9px;padding:0 6px;font-size:.75rem;margin-left:5px}
-.nt{padding:9px 12px;border-left:4px solid transparent;border-bottom:1px solid var(--line)}
-.nt.new{border-left-color:var(--acc);background:var(--bg)}
-.chatbox{padding:6px 16px}
-.um{position:relative}.um summary{cursor:pointer;font-weight:600;list-style:none}
-.um summary::-webkit-details-marker{display:none}
-.menu{position:absolute;right:0;top:140%;z-index:30;background:var(--card);border:1px solid var(--line);
-border-radius:6px;padding:10px 14px;min-width:270px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-.menu a,.menu button.link{display:block;padding:6px 0;font-weight:500}
-.menu form{margin:0}.mh{font-size:.8rem;color:var(--mute);margin:8px 0 4px}
-.opts{display:flex;gap:4px;flex-wrap:wrap}
-.opt{background:transparent;color:var(--ink);border:1px solid var(--line);padding:4px 10px}
-.opt.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
-body.wide main{max-width:none}
-.kb{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:10px}
-.kcol{flex:0 0 270px;background:var(--col);border:1px solid var(--line);border-radius:6px;padding:8px}
-.kh{font-weight:600;margin-bottom:8px;display:flex;gap:8px;align-items:center}
-.cards{display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 260px);overflow-y:auto}
-.kc{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:8px 10px}
-.kc a{font-weight:600;text-decoration:none;display:block;margin:2px 0}
-.kp2{border-left:4px solid var(--warn)}.kp3{border-left:4px solid var(--bad)}
-.mtop table{font-size:.85rem}.mtop th,.mtop td{padding:3px 8px;white-space:nowrap}
-.mtop th{position:sticky;top:0;background:var(--card);z-index:1}
-.mtop tr[data-frag]{cursor:pointer;scroll-margin-top:32px}.mtop tr[data-frag]:hover td{background:var(--col)}
-.mtop tr.on td,.mtop tr.on:hover td{background:var(--sel);font-weight:600;border-top:1px solid var(--acc);border-bottom:1px solid var(--acc)}
-.mtop tr.on td:first-child{box-shadow:inset 4px 0 0 var(--acc)}
-.mtop td.tt{max-width:460px;overflow:hidden;text-overflow:ellipsis}
-.mtop td.tt a{text-decoration:none}.mtop .badge{font-size:.72rem;padding:0 6px}
-.mtop .filters{margin:0;padding:8px 8px 6px}
-.detail h1{font-size:1.1rem;margin:0 0 8px}
-.main2 textarea{min-height:70px}
-@media (min-width:900px){
-body.fit{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-body.fit main{flex:1;min-height:0;width:100%;max-width:1500px;margin:14px auto;display:grid;
-grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:16px}
-.side{overflow-y:auto;min-height:0;padding-right:4px}
-.main2{display:flex;flex-direction:column;min-height:0}
-.main2 .chatbox{flex:1;min-height:0;display:flex}
-body.mini{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-body.mini main{flex:1;min-height:0;width:100%;max-width:none;margin:10px auto;display:flex;flex-direction:column;gap:10px}
-.mtop{flex:none;height:38vh;min-height:110px;max-height:75vh;overflow:auto;resize:vertical;
-background:var(--card);border:1px solid var(--line)}
-.detail{flex:1;min-height:0;display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:16px}
-#chat{flex:1;min-height:0;overflow-y:auto}
-}
-.dt{display:flex;gap:6px;position:relative}.dt input[type=text]{flex:1;min-width:0}.dt button{padding:7px 10px}
-.pick{position:absolute;right:0;bottom:0;opacity:0;width:1px;height:1px;border:0;padding:0;pointer-events:none}
-/* ---- 0.2.0: «Ответить» ---- */
-.rbar,.racts{display:none}
-.js .rbar{display:flex}
-.js .rform{display:none}
-.js .rform select{display:none}
-.js .reply.s1 .rbar,.js .reply.s2 .rbar{display:none}
-.js .reply.s1 .racts{display:flex;flex-wrap:wrap;gap:6px}
-.js .reply.s2 .rform{display:block}
-.reply{padding:8px 12px}
-.reply textarea{min-height:64px;margin:0 0 6px}
-.reply select{margin-bottom:6px}
-.rbtn{padding:6px 26px}
-.act{background:transparent;color:var(--ink);border:1px solid var(--line);padding:5px 12px}
-.act:hover{border-color:var(--acc)}
-.rinfo{margin-bottom:4px}
-.rrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.rrow input[type=file]{flex:1;min-width:160px;max-width:100%}
-.dhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 4px 6px}
-.dhead .ttl{font-size:1.05rem;font-weight:700}
-/* ---- 0.2.0: компактный вид ---- */
-.mscroll{overflow:auto;max-height:60vh}
-.mtop table{border-collapse:collapse;font-size:.82rem;border:0}
-.mtop th,.mtop td{padding:1px 8px;line-height:1.35;border:1px solid var(--line)}
-.mtop th{cursor:pointer;user-select:none;font-size:.75rem;box-shadow:inset 0 -1px 0 var(--line)}
-.mtop th.sa::after{content:" ▲"}.mtop th.sd::after{content:" ▼"}
-.mtop .badge{font-size:.7rem;padding:0 5px;line-height:1.3}
-.mtop .filters{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line)}
-.mtop .filters>div{display:flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0}
-.mtop .filters label{margin:0;font-size:.75rem}
-.mtop .filters input,.mtop .filters select{padding:2px 6px;font-size:.82rem;width:auto;min-width:0}
-.mtop .filters input[type=search]{width:170px}
-.mtop .filters button{padding:2px 12px}
-.vs{cursor:col-resize;margin:0 2px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat}
-.vs:hover{background:var(--line)}
-body.dragging{user-select:none;cursor:col-resize}
-@media (min-width:900px){
-body.fit header,body.mini header{padding:4px 14px;gap:14px}
-body.fit main,body.mini main{margin:6px auto 0;padding:0 10px}
-body.fit footer,body.mini footer{padding:2px 10px;line-height:1.2}
-body.mini main{gap:6px}
-.mtop{height:25vh;min-height:100px;display:flex;flex-direction:column;overflow:hidden}
-.mtop .filters{flex:none}
-.mscroll{flex:1;min-height:0;max-height:none}
-.detail{display:flex;flex-direction:column;gap:0;min-height:0}
-.dbody{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(180px,var(--sidew,26%)) 6px minmax(320px,1fr)}
-body.fit main{grid-template-rows:minmax(0,1fr)}
-.dbody>.side{padding-right:6px}
-.main2 .chatbox{margin-bottom:8px}
-.main2>.card:last-child{margin-bottom:0}
-}
-"""
 
-JS = """
-function pickDate(b){var d=b.nextElementSibling;try{d.showPicker()}catch(x){d.focus()}}
-function setDate(d){if(d.value){var p=d.value.split('-');d.previousElementSibling.previousElementSibling.value=p[2]+'.'+p[1]+'.'+p[0]}}
-function setNb(n){var b=document.getElementById('nb');if(b){b.textContent=n;b.style.display=n>0?'':'none'}}
-function pollNb(){fetch('/unread',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){setNb(d.n)}).catch(function(){})}
-if(document.getElementById('nb')){setInterval(pollNb,60000)}
-function chk(f){var s=f.status?f.status.value:'',r=f.dataset.req.split(',');
-if(s&&r.indexOf(s)>=0&&!f.body.value.trim()){alert('Для выбранного действия нужен комментарий.');f.body.focus();return false}return true}
-var uid=document.body.getAttribute('data-uid')||'0';
-function ls(k,v){try{if(v===undefined){return localStorage.getItem('tt'+uid+k)}localStorage.setItem('tt'+uid+k,v)}catch(x){}return null}
-function toEnd(){var c=document.getElementById('chat');if(c){c.scrollTop=c.scrollHeight}}
-var seq=0;
-function openRow(tr,scroll){var d=document.getElementById('detail');if(!d){return}var n=++seq;
-var o=document.querySelector('.mtop tr.on');if(o){o.classList.remove('on')}tr.classList.add('on');
-if(scroll){tr.scrollIntoView({block:'nearest'})}
-fetch(tr.dataset.frag,{credentials:'same-origin'}).then(function(r){return r.text()}).then(function(h){if(n!==seq){return}
-d.innerHTML=h;toEnd();history.replaceState(null,'',tr.dataset.href);pollNb()}).catch(function(){location.href=tr.dataset.href})}
-function sortTbl(th,dir){var t=th.closest('table'),i=th.cellIndex,num=th.getAttribute('data-t')==='n';
-var tb=t.tBodies[0],rows=[].slice.call(tb.querySelectorAll('tr[data-frag]'));
-rows.sort(function(a,b){var x=a.cells[i].getAttribute('data-v')||'',y=b.cells[i].getAttribute('data-v')||'';
-var r=num?(parseFloat(x)||0)-(parseFloat(y)||0):x.localeCompare(y,'ru');return dir==='a'?r:-r});
-rows.forEach(function(r){tb.appendChild(r)});
-[].forEach.call(t.querySelectorAll('th'),function(h){h.classList.remove('sa');h.classList.remove('sd');h.removeAttribute('data-d')});
-th.classList.add(dir==='a'?'sa':'sd');th.setAttribute('data-d',dir);ls('sort',i+':'+dir)}
-document.addEventListener('click',function(ev){
-var tg=ev.target;if(!tg.closest){return}
-var m=document.querySelector('details.um[open]');if(m&&!m.contains(tg)){m.removeAttribute('open')}
-var th=tg.closest('.mtop th');if(th){sortTbl(th,th.getAttribute('data-d')==='a'?'d':'a');return}
-var b=tg.closest('.rbtn,.act');
-if(b){var r=b.closest('.reply');if(!r){return}
-if(b.classList.contains('rbtn')){r.className='card reply s1';return}
-if(b.getAttribute('data-act')===null){r.className='card reply';return}
-var f=r.querySelector('form');f.status.value=b.getAttribute('data-act');
-r.querySelector('.rsend').textContent=b.getAttribute('data-lbl');
-r.querySelector('.rinfo').textContent=b.getAttribute('data-st')?'Статус изменится: '+b.getAttribute('data-st'):'';
-f.body.placeholder=b.getAttribute('data-req')==='1'?'Комментарий (обязателен)':'Комментарий';
-r.className='card reply s2';f.body.focus();return}
-var rc=tg.closest('.rcancel');if(rc){rc.closest('.reply').className='card reply';return}
-var tr=tg.closest('tr[data-frag]');if(!tr||ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.button){return}
-var a=tg.closest('a');if(a&&!a.classList.contains('sel')){return}
-if(!document.getElementById('detail')){return}
-ev.preventDefault();openRow(tr,false)});
-document.addEventListener('keydown',function(ev){
-var t=ev.target,tn=t.tagName;
-if(ev.key==='Escape'){var rp=t.closest?t.closest('.reply'):null;if(rp&&rp.className!=='card reply'){rp.className='card reply';return}}
-if(tn==='TEXTAREA'&&ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){var f=t.form;if(f){ev.preventDefault();if(f.requestSubmit){f.requestSubmit()}else if(chk(f)){f.submit()}}return}
-if((ev.key==='ArrowDown'||ev.key==='ArrowUp')&&!ev.ctrlKey&&!ev.altKey&&!ev.metaKey&&!ev.shiftKey&&tn!=='INPUT'&&tn!=='TEXTAREA'&&tn!=='SELECT'&&!t.isContentEditable){
-var rows=[].slice.call(document.querySelectorAll('.mtop tbody tr[data-frag]'));if(!rows.length){return}
-var cur=document.querySelector('.mtop tr.on'),i=rows.indexOf(cur);
-i=ev.key==='ArrowDown'?Math.min(i+1,rows.length-1):(i<0?0:Math.max(i-1,0));
-ev.preventDefault();if(rows[i]!==cur){openRow(rows[i],true)}}});
-var drag=null,mt=document.querySelector('.mtop'),lastH=0;
-document.addEventListener('mousedown',function(ev){if(ev.target.closest&&ev.target.closest('.vs')){drag=document.getElementById('detail');ev.preventDefault();document.body.classList.add('dragging')}});
-document.addEventListener('mousemove',function(ev){if(drag){var r=drag.getBoundingClientRect();drag.style.setProperty('--sidew',Math.max(180,Math.min(ev.clientX-r.left,r.width-340))+'px')}});
-document.addEventListener('mouseup',function(){
-if(drag){ls('sw',parseInt(drag.style.getPropertyValue('--sidew'),10)||'');drag=null;document.body.classList.remove('dragging')}
-if(mt&&Math.abs(mt.offsetHeight-lastH)>2){lastH=mt.offsetHeight;ls('mh',lastH)}});
-toEnd();
-if(mt){var hh=ls('mh');if(hh){mt.style.height=hh+'px'}lastH=mt.offsetHeight;
-var so=ls('sort');if(so){var pp=so.split(':'),ths=mt.querySelectorAll('th');if(ths[pp[0]]){sortTbl(ths[pp[0]],pp[1])}}}
-var dd=document.getElementById('detail');if(dd){var ww=ls('sw');if(ww){dd.style.setProperty('--sidew',ww+'px')}}
-var onr=document.querySelector('.mtop tr.on');if(onr){onr.scrollIntoView({block:'nearest'})}
-"""
+# CSS и JS лежат в static/app.css и static/app.js (см. asset())
+STATIC = os.path.join(BASE, "static")
+STATIC_TYPES = {"css": "text/css; charset=utf-8", "js": "application/javascript; charset=utf-8"}
 
+
+def asset(name):
+    """Адрес статического файла; в ?v= время изменения файла, поэтому кэш сбрасывается сам."""
+    try:
+        v = int(os.stat(os.path.join(STATIC, name)).st_mtime)
+    except OSError:
+        v = 0
+    return "/static/%s?v=%d" % (name, v)
 
 def layout(user, csrf, title, body, unread=0, cls="", cur="/"):
     nav = ""
@@ -480,9 +274,9 @@ def layout(user, csrf, title, body, unread=0, cls="", cur="/"):
     return ('<!doctype html><html lang="ru"%s><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             "<script>document.documentElement.className+=' js'</script>"
-            '<title>%s — Задачи</title><style>%s</style></head><body class="%s"%s><header>%s</header>'
-            '<main>%s</main><footer>Трекер задач · версия %s</footer><script>%s</script></body></html>'
-            % (theme, e(title), CSS, cls, uid, nav, body, APP_VERSION, JS))
+            '<title>%s — Задачи</title><link rel="stylesheet" href="%s"></head><body class="%s"%s><header>%s</header>'
+            '<main>%s</main><footer>Трекер задач · версия %s</footer><script src="%s"></script></body></html>'
+            % (theme, e(title), asset("app.css"), cls, uid, nav, body, APP_VERSION, asset("app.js")))
 
 
 def opts(pairs, selected):
@@ -597,7 +391,16 @@ class H(BaseHTTPRequestHandler):
                 self.csrf = r["csrf"]
                 return r
         return None
-
+    def p_static(self, path):
+        name = path[len("/static/"):]
+        m = re.fullmatch(r"[A-Za-z0-9_-]+\.(css|js)", name)   # только простые имена: выход за папку невозможен
+        fp = os.path.join(STATIC, name)
+        if not m or not os.path.isfile(fp):
+            return self.send(404, "Not found", "text/plain; charset=utf-8")
+        with open(fp, "rb") as fh:
+            data = fh.read()
+        cache = "public, max-age=31536000, immutable" if "v=" in self.path else "no-cache"
+        self.send(200, data, STATIC_TYPES[m.group(1)], [("Cache-Control", cache)])
     def do_GET(self):
         self.route("GET")
 
@@ -605,6 +408,8 @@ class H(BaseHTTPRequestHandler):
         self.route("POST")
 
     def route(self, method):
+        if method == "GET" and self.path.startswith("/static/"):
+            return self.p_static(urlparse(self.path).path)
         self.db = db()
         self.user = None
         self.csrf = ""
@@ -869,11 +674,14 @@ class H(BaseHTTPRequestHandler):
                     + cell(t["ncom"] or "", t["ncom"], "mute") + "</tr>")
         if not trs:
             trs = '<tr><td colspan="10" class="mute">Задач не найдено.</td></tr>'
-        cols = [("n", "№"), ("s", "Задача"), ("s", "Категория"), ("n", "Приоритет"), ("n", "Статус"),
-                ("s", "Автор"), ("s", "Исполнитель"), ("s", "Срок"), ("s", "Изменена"), ("n", "💬")]
-        th = "".join('<th data-t="%s">%s</th>' % c for c in cols)
-        top = ('<div class="mtop">%s<div class="mscroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div></div>'
-               % (fl, th, trs))
+        # ширина в px; 0 = занять всё свободное место (колонка «Задача»)
+        cols = [("n", "№", 46), ("s", "Задача", 0), ("s", "Категория", 120), ("n", "Приоритет", 95),
+                ("n", "Статус", 170), ("s", "Автор", 130), ("s", "Исполнитель", 130), ("s", "Срок", 90),
+                ("s", "Изменена", 140), ("n", "💬", 42)]
+        cg = "".join('<col style="width:%s">' % ("%dpx" % c[2] if c[2] else "auto") for c in cols)
+        th = "".join('<th data-t="%s">%s</th>' % c[:2] for c in cols)
+        top = ('<div class="mtop">%s<div class="mscroll"><table><colgroup>%s</colgroup><thead><tr>%s</tr></thead>'
+               '<tbody>%s</tbody></table></div></div>' % (fl, cg, th, trs))
         detail = '<div class="card mute" style="margin:0">Выберите задачу в таблице.</div>'
         if sel:
             try:
@@ -1070,7 +878,7 @@ class H(BaseHTTPRequestHandler):
                      % (k, e(STATUS[k]), e(VERBS[k]), 1 if k in COMMENT_REQUIRED else 0, e(VERBS[k]), e(STATUS[k])))
             sel += '<option value="%s">%s → %s</option>' % (k, e(VERBS[k]), e(STATUS[k]))
         reply = ('<div class="card reply"><div class="rbar"><button type="button" class="rbtn">Ответить</button></div>'
-                 '<div class="racts">%s<button type="button" class="act cancel">Отмена</button></div>'
+                 '<div class="racts">%s</div>'
                  '<form class="rform" method="post" action="/task/%d/comment" enctype="multipart/form-data" '
                  'data-req="%s" onsubmit="return chk(this)">%s<div class="rinfo small mute"></div>'
                  '<select name="status">%s</select>'

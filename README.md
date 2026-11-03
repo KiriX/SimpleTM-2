@@ -7,6 +7,7 @@
                   python3 app.py adduser LOGIN "Имя Фамилия" [--admin]
                   python3 app.py passwd LOGIN      (сброс пароля)
 Данные:           папка data/ (tasks.db + files/). Резервная копия = копия папки.
+Файлы проекта:    app.py + папка static/ (app.css, app.js); при переносе копируйте обе.
 Автозапуск:       см. tasktracker.service
 Если порт закрыт firewall'ом:  sudo ufw allow 8080/tcp
 
